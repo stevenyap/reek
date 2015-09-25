@@ -3,6 +3,8 @@ require_relative 'context/module_context'
 require_relative 'context/root_context'
 require_relative 'context/singleton_method_context'
 require_relative 'context/attribute_context'
+require_relative 'context/send_context'
+require_relative 'context/class_context'
 require_relative 'ast/node'
 
 module Reek
@@ -73,7 +75,11 @@ module Reek
       end
     end
 
-    alias_method :process_class, :process_module
+    def process_class(exp)
+      inside_new_context(Context::ClassContext, exp) do
+        process_default(exp)
+      end
+    end
 
     def process_casgn(exp)
       if exp.defines_module?
@@ -105,17 +111,19 @@ module Reek
 
     def process_args(_) end
 
-    # :reek:TooManyStatements: { max_statements: 6 }
+    # :reek:TooManyStatements: { max_statements: 8 }
     # :reek:FeatureEnvy
     def process_send(exp)
+      method_name = exp.method_name
       if exp.visibility_modifier?
-        element.track_visibility(exp.method_name, exp.arg_names)
-      end
-      if exp.attribute_writer?
+        element.track_visibility(method_name, exp.arg_names)
+      elsif exp.attribute_writer?
         exp.args.each do |arg|
           next unless arg.type == :sym
           new_context(Context::AttributeContext, arg, exp)
         end
+      else
+        new_context(Context::SendContext, exp, method_name)
       end
       element.record_call_to(exp)
       process_default(exp)

@@ -1,4 +1,6 @@
 require_relative 'code_context'
+require_relative 'method_context'
+require_relative 'singleton_method_context'
 require_relative '../ast/sexp_formatter'
 
 module Reek
@@ -7,6 +9,19 @@ module Reek
     # A context wrapper for any module found in a syntax tree.
     #
     class ModuleContext < CodeContext
+      include Enumerable
+
+      def defined_methods(visibility: :public)
+        select do |context|
+          context_is_some_kind_of_method?(context) &&
+            context.visibility == visibility
+        end
+      end
+
+      def method_calls
+        select { |context|  context.is_a?(SendContext) }
+      end
+
       def node_instance_methods
         local_nodes(:def)
       end
@@ -25,6 +40,13 @@ module Reek
         return false if exp.type == :casgn
         contents = exp.children.last
         contents && contents.find_nodes([:def, :defs], [:casgn, :class, :module]).empty?
+      end
+
+      private
+
+      # :reek:UtilityFunction
+      def context_is_some_kind_of_method?(context)
+        context.is_a?(MethodContext) || context.is_a?(SingletonMethodContext)
       end
     end
   end

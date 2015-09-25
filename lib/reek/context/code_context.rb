@@ -12,6 +12,7 @@ module Reek
     # :reek:TooManyMethods: { max_methods: 19 }
     # :reek:TooManyInstanceVariables: { max_instance_variables: 8 }
     class CodeContext
+      attr_reader :context
       attr_reader :exp
       attr_reader :num_statements
       attr_reader :children
@@ -60,6 +61,8 @@ module Reek
         @num_statements = 0
         @refs = AST::ObjectRefs.new
       end
+
+      alias_method :parent, :context
 
       # Register a child context. The child's parent context should be equal to
       # the current context.
