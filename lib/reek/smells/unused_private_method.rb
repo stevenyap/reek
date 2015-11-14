@@ -6,14 +6,15 @@ require_relative '../context/singleton_method_context'
 module Reek
   module Smells
     # Class for storing `hits` which are unused private methods
-    # we found in the given context. `name` and `scope` are then used to
+    # we found in the given context. `name`, `line` and `scope` are then used to
     # construct SmellWarnings.
     class Hit
-      attr_reader :name, :scope
+      attr_reader :name, :scope, :line
 
       def initialize(context)
         @name  = context.name
         @scope = context.class == Context::SingletonMethodContext ? 'class' : 'instance'
+        @line  = context.exp.line
       end
     end
 
@@ -36,7 +37,7 @@ module Reek
           name = hit.name
           smell_warning(
             context: ctx,
-            lines: [ctx.exp.line],
+            lines: [hit.line],
             message: "has the unused private #{hit.scope} method `#{name}`",
             parameters: { name: name })
         end

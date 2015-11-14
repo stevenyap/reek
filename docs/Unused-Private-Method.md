@@ -19,8 +19,8 @@ end
 
 ```
 2 warnings:
-  [1]:Car has the unused private class method `start_the_engine` (UnusedPrivateMethod)
-  [1]:Car has the unused private instance method `drive` (UnusedPrivateMethod)
+  [3]:Car has the unused private class method `start_the_engine` (UnusedPrivateMethod)
+  [4]:Car has the unused private instance method `drive` (UnusedPrivateMethod)
 ```
 
 As you can see above, `Unused Private Method` does differentiate between class
