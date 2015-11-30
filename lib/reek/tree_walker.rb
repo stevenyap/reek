@@ -18,6 +18,9 @@ module Reek
   #
   # :reek:TooManyMethods: { max_methods: 29 }
   class TreeWalker
+    private_attr_accessor :element
+    private_attr_reader :exp, :smell_repository, :context_tree
+
     def initialize(smell_repository, exp)
       @smell_repository = smell_repository
       @exp = exp
@@ -32,9 +35,6 @@ module Reek
     end
 
     private
-
-    private_attr_accessor :element
-    private_attr_reader :exp, :smell_repository, :context_tree
 
     # Processes the given AST, memoizes it and returns a tree of nested
     # contexts.
@@ -82,14 +82,14 @@ module Reek
 
     def process_def(exp)
       inside_new_context(Context::MethodContext, exp) do
-        count_clause(exp.body)
+        count_single_statement(exp.body)
         process_default(exp)
       end
     end
 
     def process_defs(exp)
       inside_new_context(Context::SingletonMethodContext, exp) do
-        count_clause(exp.body)
+        count_single_statement(exp.body)
         process_default(exp)
       end
     end
@@ -138,17 +138,13 @@ module Reek
 
     alias_method :process_zsuper, :process_self
 
-    #
-    # Statement counting
-    #
-
     def process_block(exp)
-      count_clause(exp.block)
+      count_single_statement(exp.block)
       process_default(exp)
     end
 
     def process_begin(exp)
-      count_statement_list(exp.children)
+      count_multiple_statements(exp.children)
       element.count_statements(-1)
       process_default(exp)
     end
@@ -157,14 +153,14 @@ module Reek
 
     def process_if(exp)
       children = exp.children
-      count_clause(children[1])
-      count_clause(children[2])
+      count_single_statement(children[1])
+      count_single_statement(children[2])
       element.count_statements(-1)
       process_default(exp)
     end
 
     def process_while(exp)
-      count_clause(exp.children[1])
+      count_single_statement(exp.children[1])
       element.count_statements(-1)
       process_default(exp)
     end
@@ -172,30 +168,30 @@ module Reek
     alias_method :process_until, :process_while
 
     def process_for(exp)
-      count_clause(exp.children[2])
+      count_single_statement(exp.children[2])
       element.count_statements(-1)
       process_default(exp)
     end
 
     def process_rescue(exp)
-      count_clause(exp.children.first)
+      count_single_statement(exp.children.first)
       element.count_statements(-1)
       process_default(exp)
     end
 
     def process_resbody(exp)
-      count_statement_list(exp.children[1..-1].compact)
+      count_multiple_statements(exp.children[1..-1].compact)
       process_default(exp)
     end
 
     def process_case(exp)
-      count_clause(exp.else_body)
+      count_single_statement(exp.else_body)
       element.count_statements(-1)
       process_default(exp)
     end
 
     def process_when(exp)
-      count_clause(exp.body)
+      count_single_statement(exp.body)
       process_default(exp)
     end
 
@@ -204,11 +200,12 @@ module Reek
     end
 
     # :reek:ControlParameter
-    def count_clause(sexp)
-      element.count_statements(1) if sexp
+    def count_single_statement(sexp)
+      return unless sexp
+      element.count_statements(1)
     end
 
-    def count_statement_list(statement_list)
+    def count_multiple_statements(statement_list)
       element.count_statements statement_list.length
     end
 
@@ -220,7 +217,7 @@ module Reek
 
     def new_context(klass, *args)
       klass.new(element, *args).tap do |scope|
-        element.append_child_context(scope)
+        element << (scope)
       end
     end
 

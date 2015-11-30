@@ -12,10 +12,15 @@ module Reek
     # :reek:TooManyMethods: { max_methods: 19 }
     # :reek:TooManyInstanceVariables: { max_instance_variables: 8 }
     class CodeContext
-      attr_reader :exp
-      attr_reader :num_statements
-      attr_reader :children
-      attr_reader :visibility
+      attr_reader :exp,
+                  :num_statements,
+                  :visibility,
+                  :children
+      protected_attr_writer :num_statements,
+                            :visibility
+      private_attr_reader :context,
+                          :refs
+      private_attr_writer :tracked_visibility
 
       # Initializes a new CodeContext.
       #
@@ -68,7 +73,7 @@ module Reek
       # visibility.
       #
       # @param child [CodeContext] the child context to register
-      def append_child_context(child)
+      def <<(child)
         child.visibility = tracked_visibility
         children << child
       end
@@ -102,7 +107,7 @@ module Reek
       end
 
       def local_nodes(type, &blk)
-        each_node(type, [:casgn, :class, :module], &blk)
+        exp.each_node(type, [:casgn, :class, :module], &blk)
       end
 
       # See Reek::AST::Node for details.
@@ -124,7 +129,7 @@ module Reek
 
       def config_for(detector_class)
         context_config_for(detector_class).merge(
-          config[detector_class.smell_type] || {})
+          configuration_by_code_comment[detector_class.smell_type] || {})
       end
 
       # Handle the effects of a visibility modifier.
@@ -163,21 +168,14 @@ module Reek
         visibility != :public
       end
 
-      protected
-
-      attr_writer :num_statements, :visibility
-
       private
-
-      private_attr_writer :tracked_visibility
-      private_attr_reader :context, :refs
 
       def tracked_visibility
         @tracked_visibility ||= :public
       end
 
-      def config
-        @config ||= CodeComment.new(full_comment).config
+      def configuration_by_code_comment
+        @configuration_by_code_comment ||= CodeComment.new(full_comment).config
       end
 
       def full_comment
