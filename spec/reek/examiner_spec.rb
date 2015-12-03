@@ -53,4 +53,18 @@ RSpec.describe Reek::Examiner do
 
     it_should_behave_like 'no smells found'
   end
+
+  describe '#run' do
+    xit "configures it's associated SmellRepository correctly" do
+      code     = 'def foo; bar.call_me(); bar.call_me(); end'
+      examiner = described_class.new code, [Reek::Smells::DuplicateMethodCall]
+      examiner.send :run
+
+      smell = examiner.send(:smell_repository).send(:detectors).detect do |detector|
+        detector.is_a? Reek::Smells::DuplicateMethodCall
+      end.send(:smells_found).first
+
+      expect(smell.message).to eq('calls bar.call_me 2 times')
+    end
+  end
 end
